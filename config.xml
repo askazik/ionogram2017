@@ -2,7 +2,8 @@
 
 <parus>
 
-  <ionogram>
+  <!-- Измерение ионограмм -->
+  <Measurement name="ionogram">
     <header>
       <!-- Версия для сохранения в файл. 0 - ИПГ, 1 - CDF -->
       <version>0</version>
@@ -34,9 +35,10 @@
       <!-- конечная частота зондирования, кГц -->
       <fend>9000</fend>
     </module>
-  </ionogram>
+  </Measurement>
 
-  <amplitudes>
+  <!-- Многочастотные измерения амплитуд -->
+  <Measurement name="amplitudes">
     <header>
       <!-- Версия для сохранения в файл. -->
       <version>3</version>
@@ -81,7 +83,7 @@
       <frequency>2000</frequency>
     </module>
     
-  </amplitudes>
+  </Measurement>
   
 </parus>
 

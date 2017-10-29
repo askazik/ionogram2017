@@ -12,6 +12,8 @@
 #include "config.h"
 #include "tinyxml2.h"
 
+namespace XML = tinyxml2;
+
 #define IONOGRAM_CONFIG_DEFAULT_FILE_NAME "ionogram2017.conf"
 #define AMPLITUDES_CONFIG_DEFAULT_FILE_NAME "amplitudes2017.conf"
 #define XML_CONFIG_DEFAULT_FILE_NAME "config.xml"
@@ -21,7 +23,8 @@ namespace parus {
 	// ===========================================================================
 	// Конфигурационный файл
 	// ===========================================================================
-	
+	enum  Measurement { IONOGRAM = 1, AMPLITUDES }; // перечисление для вариантов проведения эксперимента
+
 	// Общие параметры для программирования устройства.
 	struct ionosounder { 
 		unsigned ver; // номер версии для сохранения файла результатов
@@ -58,7 +61,6 @@ namespace parus {
 
 		std::string getFileName(void){return _fullFileName;}
 
-		std::string getTag(void){return _device.tag;}
 		unsigned getVersion(void){return _device.ver;}
 		unsigned getHeightStep(void){return _device.height_step;}
 		void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
@@ -76,13 +78,13 @@ namespace parus {
 	protected:
 		ionosounder _device;
 		std::string _fullFileName;
-		std::ifstream _fin;
+		Measurement _mes;
+		XML::XMLDocument _document;
 
-		unsigned getValueFromString(std::string line);
 		void readDeviceConfig(void);
 
 	public:
-		xmlconfig(std::string fullName);
+		xmlconfig(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = IONOGRAM);
 		~xmlconfig(void);
 
 		std::string getFileName(void){return _fullFileName;}

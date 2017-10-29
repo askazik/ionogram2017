@@ -120,6 +120,73 @@ namespace parus {
 	}
 
 	// ===========================================================================
+	// Конфигурационный файл XML
+	// ===========================================================================
+
+	xmlconfig::xmlconfig(std::string fullName, Measurement mes)
+	{
+		_fullFileName = fullName;
+		_mes = mes;
+
+		// Считаем информацию.
+		const XML::XMLElement *xml_mes, *xml_header, *xml_element;
+		_document.LoadFile(_fullFileName.c_str());
+ 
+		// Искомый параметр name для выбора измерения
+		std::string mes_name;
+		switch(mes)
+		{
+		case IONOGRAM:
+			mes_name = "ionogram";
+			break;
+		case AMPLITUDES:
+			mes_name = "amplitudes";
+			break;
+		}
+
+		// Определим элемент с искомым параметром
+		const char *attribval;
+		do
+		{
+			xml_mes = _document.FirstChildElement("Measurement");
+			attribval = xml_mes->Attribute("name");
+		} while(!strcmp(attribval, mes_name.c_str()));
+ 
+		int value = 0;
+		xml_header = xml_mes->FirstChildElement("header");
+		xml_element = xml_header->FirstChildElement("version");
+			xml_element->QueryIntText(&value);
+				_device.ver = value;
+		xml_element = xml_header->FirstChildElement("height_step");
+			xml_element->QueryIntText(&value);
+				_device.height_step = value;
+		xml_element = xml_header->FirstChildElement("height_count");
+			xml_element->QueryIntText(&value);
+				_device.height_count = value;
+		xml_element = xml_header->FirstChildElement("pulse_count");
+			xml_element->QueryIntText(&value);
+				_device.pulse_count = value;
+		xml_element = xml_header->FirstChildElement("attenuation");
+			xml_element->QueryIntText(&value);
+				_device.attenuation = value;
+		xml_element = xml_header->FirstChildElement("gain");
+			xml_element->QueryIntText(&value);
+				_device.gain = value;
+		xml_element = xml_header->FirstChildElement("pulse_frq");
+			xml_element->QueryIntText(&value);
+				_device.pulse_frq = value;
+		xml_element = xml_header->FirstChildElement("pulse_duration");
+			xml_element->QueryIntText(&value);
+				_device.pulse_duration = value;
+		xml_element = xml_header->FirstChildElement("switch_frequency");
+			xml_element->QueryIntText(&value);
+				_device.switch_frequency = value;
+		xml_element = xml_header->FirstChildElement("modules_count");
+			xml_element->QueryIntText(&value);
+				_device.modules_count = value;
+	}
+
+	// ===========================================================================
 	// Ионограмма
 	// ===========================================================================
 	confIonogram::confIonogram(void) :
