@@ -13,7 +13,7 @@
 
 // Внутренние заголовочные файлы
 #include "config.h"
-#include "parus.h"
+//#include "parus.h"
 
 void SetPriorityClass(void);
 

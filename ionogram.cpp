@@ -13,62 +13,58 @@ int main(void)
     // ===========================================================================================
     // 1. Читаем файл конфигурации.
     // ===========================================================================================
-	confIonogram* conf = nullptr;
+	xmlconfig conf;
+	ionHeaderNew2 _header = conf.getIonogramHeader();
 
-	if(config::isIonogramConfig())
-	{
-		conf = new confIonogram();
-		std::cout << "Используем конфигурационный файл: <" << conf->getFileName() << ">." << std::endl;
+	std::cout << "Используем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
 
-		std::cout << "Параметры зондирования: " << std::endl;
-		std::cout << "Частоты: " << conf->getFreq_min() << " кГц - " << conf->getFreq_max() 
-				<< " кГц, усиление = " << conf->getGain() 
-				<< " дБ, аттенюатор = " << conf->getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
-	}
-
+	std::cout << "Параметры зондирования: " << std::endl;
+	std::cout << "Частоты: " << _header.freq_min << " кГц - " << _header.freq_max 
+				<< " кГц, усиление = " << conf.getGain() 
+				<< " дБ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
     // ===========================================================================================
     // 2. Конфигурирование сеанса.
     // ===========================================================================================
 	int RetStatus = 0;
 	try	
 	{
-		// Подготовка аппаратуры к зондированию.
-		// Открытие выходнго файла данных и запись заголовка.
-		parusWork *work = new parusWork(conf);
+		//// Подготовка аппаратуры к зондированию.
+		//// Открытие выходнго файла данных и запись заголовка.
+		//parusWork *work = new parusWork(conf);
 
-		DWORD msTimeout = 4;
-		unsigned short curFrq = conf->getFreq_min(); // текущая частота зондирования, кГц
-		int counter = conf->getFreq_count() * conf->getPulseCount(); // число импульсов от генератора
+		//DWORD msTimeout = 4;
+		//unsigned short curFrq = conf->getFreq_min(); // текущая частота зондирования, кГц
+		//int counter = conf->getFreq_count() * conf->getPulseCount(); // число импульсов от генератора
 
-		work->startGenerator(counter+1); // Запуск генератора импульсов.
-		while(counter) // обрабатываем импульсы генератора
-		{
-			work->adjustSounding(curFrq);
+		//work->startGenerator(counter+1); // Запуск генератора импульсов.
+		//while(counter) // обрабатываем импульсы генератора
+		//{
+		//	work->adjustSounding(curFrq);
 
-			// Инициализация массива суммирования нулями.
-			work->cleanLineAccumulator();
-			for (unsigned k = 0; k < conf->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
-			{
-				work->ASYNC_TRANSFER(); // запустим АЦП
-				
-				// Цикл проверки до появления результатов в буфере.
-				// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
-				while(work->READ_ISCOMPLETE(msTimeout) == NULL);
+		//	// Инициализация массива суммирования нулями.
+		//	work->cleanLineAccumulator();
+		//	for (unsigned k = 0; k < conf->getPulseCount(); k++) // счётчик циклов суммирования на одной частоте
+		//	{
+		//		work->ASYNC_TRANSFER(); // запустим АЦП
+		//		
+		//		// Цикл проверки до появления результатов в буфере.
+		//		// READ_BUFISCOMPLETE - сбоит на частоте 47 Гц
+		//		while(work->READ_ISCOMPLETE(msTimeout) == NULL);
 
-				// Остановим АЦП
-				work->READ_ABORTIO();					
+		//		// Остановим АЦП
+		//		work->READ_ABORTIO();					
 
-				work->accumulateLine();
-				counter--; // приступаем к обработке следующего импульса
-			}
-			// усредним по количеству импульсов зондирования на одной частоте
-			work->averageLine(conf->getPulseCount()); 
-			// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
-			work->saveLine(curFrq);
+		//		work->accumulateLine();
+		//		counter--; // приступаем к обработке следующего импульса
+		//	}
+		//	// усредним по количеству импульсов зондирования на одной частоте
+		//	work->averageLine(conf->getPulseCount()); 
+		//	// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
+		//	work->saveLine(curFrq);
 
-			curFrq += conf->getFreq_step(); // следующая частота зондирования
-		}
-		delete work;
+		//	curFrq += conf->getFreq_step(); // следующая частота зондирования
+		//}
+		//delete work;
 	}
 	catch(std::exception &e)
 	{
@@ -78,9 +74,6 @@ int main(void)
 		RetStatus = -1;
 	}
 	Beep( 1500, 300 );
-
-	// Прибираем конфигурационный файл
-	if(conf != nullptr)	delete conf;
 
 	return RetStatus;
 }

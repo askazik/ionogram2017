@@ -3,133 +3,27 @@
 // ===========================================================================
 #include "config.h"
 
+/// <summary>
+/// Содержит классы и определения для работы с конфигурацией аппаратуры и эксперимента.
+/// </summary>
 namespace parus {
-
-	// ===========================================================================
-	// Конфигурационный файл
-	// ===========================================================================
-	const std::string config::_whitespaces = " \t\f\v\n\r";
-
-	config::config(std::string fullName)
-	{
-		_fullFileName = fullName;
-
-		// Откроем файл для чтения.
-		_fin.open(_fullFileName);
-		if(!_fin.is_open())
-			throw std::runtime_error("Error: Не могу открыть конфигурационный файл " + _fullFileName);
-		readDeviceConfig();
-	}
-
-	config::~config(void){
-		_fin.close();
-	}
-
-	// Получение целого значения из строки.
-	unsigned config::getValueFromString(std::string line)
-	{
-		return std::stoi(line,nullptr);
-	}
-
-	bool config::isTagConfig(std::string Tag, std::string fullName)
-	{
-		bool key = false;
-
-		// Откроем файл для чтения.
-		std::ifstream fin(fullName);
-		if(!fin)
-			throw std::runtime_error("Error: Не могу открыть конфигурационный файл " + fullName);
-
-		std::string line;
-		while(getline(fin, line))
-		{
-			// trim from end of string (right)
-			line.erase(line.find_last_not_of(_whitespaces) + 1);
-			if(line[0] != '#' && line.size()) // пропуск комментариев и пустых строк
-			{
-				std::size_t pos = line.find(Tag);
-				if (pos != std::string::npos && pos == 0) // тег найден
-				{
-					key = true;
-					break; // заканчиваем цикл после нахождения первой значащей строки
-				}
-			}			
-		}
-		fin.close();
-    
-		return key;
-	}
-
-	bool config::isIonogramConfig(std::string fullName)
-	{
-		return isTagConfig("IONOGRAM", fullName);
-	}
-
-	bool config::isAmplitudesConfig(std::string fullName)
-	{
-		return isTagConfig("AMPLITUDES", fullName);
-	}
-
-	void config::readDeviceConfig(void)
-	{
-		int i = 0; // счетчик значений
-		bool key = false;
-	
-		std::string line;
-		while(!key)
-		{
-			getline(_fin, line);
-			// trim from end of string (right)
-			line.erase(line.find_last_not_of(config::_whitespaces) + 1);
-			if(line[0] != '#' && line.size()) // пропуск комментариев и пустых строк
-			{
-				i++;
-				switch(i)
-				{									
-				case 1: // пропускаем тег принадлежности
-					_device.tag = line;
-					break;
-				case 2: // версия формата
-					_device.ver = getValueFromString(line);
-					break;
-				case 3: // шаг по высоте, м
-					_device.height_step = getValueFromString(line);
-					break;
-				case 4: // количество отсчётов высоты, не более 4096
-					_device.height_count = getValueFromString(line);
-					break;
-				case 5: // импульсов зондирования на каждой частоте
-					_device.pulse_count = getValueFromString(line);
-					break;
-				case 6: // ослабление (аттенюатор) 1/0 = вкл/выкл
-					_device.attenuation = getValueFromString(line);
-					break;
-				case 7: // усиление (g = value/6, 6дБ = приращение в 4 раза по мощности)
-					_device.gain = getValueFromString(line);
-					break;
-				case 8: // частота зондирующих импульсов, Гц
-					_device.pulse_frq = getValueFromString(line);
-					break;
-				case 9: // длительность зондирующих импульсов, мкс
-					_device.pulse_duration = getValueFromString(line);
-					key = true;
-					break;
-				}
-			}                        
-		}
-	}
 
 	// ===========================================================================
 	// Конфигурационный файл XML
 	// ===========================================================================
 
+	/// <summary>
+	/// Инициализация нового объекта класса <see cref="xmlconfig"/>.
+	/// </summary>
+	/// <param name="fullName">Имя конфигурационного файла xml. По умолчанию: #define XML_CONFIG_DEFAULT_FILE_NAME.</param>
+	/// <param name="mes">Вид эксперимента (ионограмма/амплитудограмма). По умолчанию: IONOGRAM.</param>
 	xmlconfig::xmlconfig(std::string fullName, Measurement mes)
 	{
 		_fullFileName = fullName;
 		_mes = mes;
 
 		// Считаем информацию.
-		const XML::XMLElement *xml_mes, *xml_header, *xml_element;
+		XML::XMLElement *xml_mes, *parent;
 		_document.LoadFile(_fullFileName.c_str());
  
 		// Искомый параметр name для выбора измерения
@@ -146,13 +40,37 @@ namespace parus {
 
 		// Определим элемент с искомым параметром
 		const char *attribval;
+		parent = _document.FirstChildElement();
+		// Перебор до нахождения аттрибута
 		do
 		{
-			xml_mes = _document.FirstChildElement("Measurement");
+			xml_mes = parent->FirstChildElement("Measurement");
 			attribval = xml_mes->Attribute("name");
-		} while(!strcmp(attribval, mes_name.c_str()));
+		} while(xml_mes != NULL && strcmp(attribval, mes_name.c_str()));
  
+		// Считываем желаемую конфигурацию аппаратуры.
+		loadMeasurementHeader(xml_mes);
+		// Считываем желаемую конфигурацию эксперимента.
+		switch(mes)
+		{
+		case IONOGRAM:
+			loadIonogramConfig(xml_mes);
+			break;
+		case AMPLITUDES:
+			
+			break;
+		}
+	}
+
+	/// <summary>
+	/// Считывание информации о настройках аппаратуры. Содержится в заголовке блока эксперимента.
+	/// </summary>
+	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
+	void xmlconfig::loadMeasurementHeader(XML::XMLElement *xml_mes)
+	{
+		XML::XMLElement *xml_header, *xml_element;
 		int value = 0;
+
 		xml_header = xml_mes->FirstChildElement("header");
 		xml_element = xml_header->FirstChildElement("version");
 			xml_element->QueryIntText(&value);
@@ -186,57 +104,112 @@ namespace parus {
 				_device.modules_count = value;
 	}
 
+	/// <summary>
+	/// Загрузка информации о конфигурации измерения ионограмм.
+	/// </summary>
+	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
+	void xmlconfig::loadIonogramConfig(XML::XMLElement *xml_mes)
+	{
+		XML::XMLElement *xml_module, *xml_element;
+		int value = 0;
+
+		// Считаем, что модуль ионограммы единственный
+		xml_module = xml_mes->FirstChildElement("module");
+		xml_element = xml_module->FirstChildElement("fbeg");
+			xml_element->QueryIntText(&value);
+				_ionogram.fbeg = value;
+		xml_element = xml_module->FirstChildElement("fend");
+			xml_element->QueryIntText(&value);
+				_ionogram.fend = value;
+		xml_element = xml_module->FirstChildElement("fstep");
+			xml_element->QueryIntText(&value);
+				_ionogram.fstep = value;
+	}
+
+	// Формирование заголовка файла ионограмм
+	ionHeaderNew2 xmlconfig::getIonogramHeader(void)
+	{
+		ionHeaderNew2 _out;
+
+		_out.count_freq = 1 + (_ionogram.fend - _ionogram.fbeg)/_ionogram.fstep;
+		_out.count_height = getHeightCount();
+		_out.count_modules = getModulesCount();
+		_out.freq_max = _ionogram.fend;
+		_out.freq_min = _ionogram.fbeg;
+		_out.height_min = 0;
+		_out.height_step = getHeightStep();
+		_out.switch_frequency = _device.switch_frequency;
+		_out.ver = getVersion();
+
+		return _out;
+	}
+
+	/// <summary>
+	/// Загрузка информации о конфигурации амплитудных измерений.
+	/// </summary>
+	/// <param name="xml_mes">Указатель на XML элемент, сожержащий информацию о настройках аппаратуры/эксперимента.</param>
+	void xmlconfig::loadAmplitudesConfig(XML::XMLElement *xml_mes)
+	{
+		// Определим элемент с искомым параметром
+		//const char *attribval;
+		//do
+		//{
+		//	xml_mes = _document.FirstChildElement("Measurement");
+		//	attribval = xml_mes->Attribute("name");
+		//} while(!strcmp(attribval, mes_name.c_str()));
+	}
+
 	// ===========================================================================
 	// Ионограмма
 	// ===========================================================================
-	confIonogram::confIonogram(void) :
-		config(IONOGRAM_CONFIG_DEFAULT_FILE_NAME)
-	{
-		readIonogramConf();
-	}
+	//confIonogram::confIonogram(void) :
+	//	config(IONOGRAM_CONFIG_DEFAULT_FILE_NAME)
+	//{
+	//	readIonogramConf();
+	//}
 
-	confIonogram::confIonogram(std::string fullName) :
-		config(fullName)
-	{
-		readIonogramConf();
-	}
-    
-	confIonogram::~confIonogram(void)
-	{
-		std::cout << "Выполнен деструктор конфигурационного файла." << std::endl;
-	}
+	//confIonogram::confIonogram(std::string fullName) :
+	//	config(fullName)
+	//{
+	//	readIonogramConf();
+	//}
+ //   
+	//confIonogram::~confIonogram(void)
+	//{
+	//	std::cout << "Выполнен деструктор конфигурационного файла." << std::endl;
+	//}
 
-	void confIonogram::readIonogramConf(void)
-	{
-		_fin.seekg(0);
-		int i = 0; // счетчик значений
-		bool key = false;
-	
-		std::string line;
-		while(!key)
-		{
-			getline(_fin, line);
-			// trim from end of string (right)
-			line.erase(line.find_last_not_of(config::_whitespaces) + 1);
-			if(line[0] != '#' && line.size() > 1) // пропуск комментариев и пустых строк
-			{
-				i++;
-				switch(i)
-				{									
-				case 10: // шаг по частоте ионограммы, кГц
-					_ionogram.fstep = getValueFromString(line);
-					break;
-				case 11: // начальная частота зондирования, кГц
-					_ionogram.fbeg = getValueFromString(line);
-					break;
-				case 12: // конечная частота зондирования, кГц
-					_ionogram.fend = getValueFromString(line);
-					key = true;
-					break;
-				}
-			}                        
-		}
-	}
+	//void confIonogram::readIonogramConf(void)
+	//{
+	//	_fin.seekg(0);
+	//	int i = 0; // счетчик значений
+	//	bool key = false;
+	//
+	//	std::string line;
+	//	while(!key)
+	//	{
+	//		getline(_fin, line);
+	//		// trim from end of string (right)
+	//		line.erase(line.find_last_not_of(config::_whitespaces) + 1);
+	//		if(line[0] != '#' && line.size() > 1) // пропуск комментариев и пустых строк
+	//		{
+	//			i++;
+	//			switch(i)
+	//			{									
+	//			case 10: // шаг по частоте ионограммы, кГц
+	//				_ionogram.fstep = getValueFromString(line);
+	//				break;
+	//			case 11: // начальная частота зондирования, кГц
+	//				_ionogram.fbeg = getValueFromString(line);
+	//				break;
+	//			case 12: // конечная частота зондирования, кГц
+	//				_ionogram.fend = getValueFromString(line);
+	//				key = true;
+	//				break;
+	//			}
+	//		}                        
+	//	}
+	//}
 
 	//// ===========================================================================
 	//// Амплитуды

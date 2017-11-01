@@ -104,33 +104,6 @@ namespace parus {
 		double dh;              // шаг по высоте, км
 	};
 
-	struct ionHeaderNew2 { 	    // === Заголовок файла ионограмм ===
-		unsigned ver; // номер версии
-		struct tm time_sound; // GMT время получения ионограммы
-		unsigned height_min; // начальная высота, м
-		unsigned height_step; // шаг по высоте, м
-		unsigned count_height; // число высот
-		unsigned switch_frequency; // частота переключения антенн ионозонда 
-		unsigned freq_min; // начальная частота, кГц (первого модуля)
-		unsigned freq_max; // конечная частота, кГц (последнего модуля)   
-		unsigned count_freq; // число частот во всех модулях
-		unsigned count_modules; // количество модулей зондирования
-
-		// Начальная инициализация структуры.
-		ionHeaderNew2(void)
-		{
-			ver = 2;
-			height_min = 0; // Это не означает, что зондирование от поверхности. Есть задержки!!!
-			height_step = 0;
-			count_height = 0;
-			switch_frequency = 0;
-			freq_min = 0;
-			freq_max = 0;    
-			count_freq = 0;
-			count_modules = 0;
-		}
-	};
-
 	struct ionPackedData { // Упакованные данные ионограммы.
 		unsigned size; // Размер упакованной ионограммы в байтах.
 		unsigned char *ptr;   // Указатель на блок данных упакованной ионограммы.
@@ -210,8 +183,8 @@ namespace parus {
 		void initLPT1(void);
 
 		// Работа с файлами выходных данных
-		void openIonogramFile(config* conf);
-		void openDataFile(config* conf);
+		//void openIonogramFile(config* conf);
+		//void openDataFile(config* conf);
 		void closeOutputFile(void);
 
 		// Работа с ионограммами

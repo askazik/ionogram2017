@@ -21,6 +21,36 @@ namespace XML = tinyxml2;
 namespace parus {
 
 	// ===========================================================================
+	// Структура для измерения ионограмм
+	// ===========================================================================
+	struct ionHeaderNew2 { 	    // === Заголовок файла ионограмм ===
+		unsigned ver; // номер версии
+		struct tm time_sound; // GMT время получения ионограммы
+		unsigned height_min; // начальная высота, м
+		unsigned height_step; // шаг по высоте, м
+		unsigned count_height; // число высот
+		unsigned switch_frequency; // частота переключения антенн ионозонда 
+		unsigned freq_min; // начальная частота, кГц (первого модуля)
+		unsigned freq_max; // конечная частота, кГц (последнего модуля)   
+		unsigned count_freq; // число частот во всех модулях
+		unsigned count_modules; // количество модулей зондирования
+
+		// Начальная инициализация структуры.
+		ionHeaderNew2(void)
+		{
+			ver = 2;
+			height_min = 0; // Это не означает, что зондирование от поверхности. Есть задержки!!!
+			height_step = 0;
+			count_height = 0;
+			switch_frequency = 0;
+			freq_min = 0;
+			freq_max = 0;    
+			count_freq = 0;
+			count_modules = 0;
+		}
+	};
+
+	// ===========================================================================
 	// Конфигурационный файл
 	// ===========================================================================
 	enum  Measurement { IONOGRAM = 1, AMPLITUDES }; // перечисление для вариантов проведения эксперимента
@@ -39,38 +69,44 @@ namespace parus {
 		unsigned modules_count; // Число модулей
 	};
 
-	// Общий блок конфигурационного файла
-	class config {
-
-	protected:
-		ionosounder _device;
-		static const std::string _whitespaces;
-		std::string _fullFileName;
-		std::ifstream _fin;
-
-		unsigned getValueFromString(std::string line);
-		void readDeviceConfig(void);
-
-	public:
-		config(std::string fullName);
-		~config(void);
-
-		static bool isTagConfig(std::string Tag, std::string fullName);
-		static bool isIonogramConfig(std::string fullName = std::string(IONOGRAM_CONFIG_DEFAULT_FILE_NAME));
-		static bool isAmplitudesConfig(std::string fullName = std::string(AMPLITUDES_CONFIG_DEFAULT_FILE_NAME));
-
-		std::string getFileName(void){return _fullFileName;}
-
-		unsigned getVersion(void){return _device.ver;}
-		unsigned getHeightStep(void){return _device.height_step;}
-		void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
-		unsigned getHeightCount(void){return _device.height_count;}
-		unsigned getPulseCount(void){return _device.pulse_count;}
-		unsigned getAttenuation(void){return _device.attenuation;}
-		unsigned getGain(void){return _device.gain;}
-		unsigned getPulseFrq(void){return _device.pulse_frq;}
-		unsigned getPulseDuration(void){return _device.pulse_duration;}
+	struct ionogramSettings {  
+		unsigned fstep;  // шаг по частоте ионограммы, кГц
+		unsigned fbeg;   // начальная частота модуля, кГц
+		unsigned fend;   // конечная частота модуля, кГц	
 	};
+
+	//// Общий блок конфигурационного файла
+	//class config {
+
+	//protected:
+	//	ionosounder _device;
+	//	static const std::string _whitespaces;
+	//	std::string _fullFileName;
+	//	std::ifstream _fin;
+
+	//	unsigned getValueFromString(std::string line);
+	//	void readDeviceConfig(void);
+
+	//public:
+	//	config(std::string fullName);
+	//	~config(void);
+
+	//	static bool isTagConfig(std::string Tag, std::string fullName);
+	//	static bool isIonogramConfig(std::string fullName = std::string(IONOGRAM_CONFIG_DEFAULT_FILE_NAME));
+	//	static bool isAmplitudesConfig(std::string fullName = std::string(AMPLITUDES_CONFIG_DEFAULT_FILE_NAME));
+
+	//	std::string getFileName(void){return _fullFileName;}
+
+	//	unsigned getVersion(void){return _device.ver;}
+	//	unsigned getHeightStep(void){return _device.height_step;}
+	//	void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
+	//	unsigned getHeightCount(void){return _device.height_count;}
+	//	unsigned getPulseCount(void){return _device.pulse_count;}
+	//	unsigned getAttenuation(void){return _device.attenuation;}
+	//	unsigned getGain(void){return _device.gain;}
+	//	unsigned getPulseFrq(void){return _device.pulse_frq;}
+	//	unsigned getPulseDuration(void){return _device.pulse_duration;}
+	//};
 
 	// Общий блок конфигурационного xml-файла
 	class xmlconfig {
@@ -81,11 +117,15 @@ namespace parus {
 		Measurement _mes;
 		XML::XMLDocument _document;
 
-		void readDeviceConfig(void);
+		// Структура для измерения ионограмм
+		ionogramSettings _ionogram;
+
+		void loadMeasurementHeader(XML::XMLElement *xml_mes);
+		void loadIonogramConfig(XML::XMLElement *xml_mes);
+		void loadAmplitudesConfig(XML::XMLElement *xml_mes);
 
 	public:
 		xmlconfig(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = IONOGRAM);
-		~xmlconfig(void);
 
 		std::string getFileName(void){return _fullFileName;}
 
@@ -93,88 +133,86 @@ namespace parus {
 		unsigned getHeightStep(void){return _device.height_step;}
 		void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
 		unsigned getHeightCount(void){return _device.height_count;}
+		unsigned getModulesCount(void){return _device.modules_count;}
 		unsigned getPulseCount(void){return _device.pulse_count;}
 		unsigned getAttenuation(void){return _device.attenuation;}
 		unsigned getGain(void){return _device.gain;}
 		unsigned getPulseFrq(void){return _device.pulse_frq;}
 		unsigned getPulseDuration(void){return _device.pulse_duration;}
+
+		// Формирование заголовка файла ионограмм
+		ionHeaderNew2 getIonogramHeader(void);
 	};
 
-	// ===========================================================================
-	// Ионограмма
-	// ===========================================================================
-	
-	struct ionogramSettings {  
-		unsigned fstep;  // шаг по частоте ионограммы, кГц
-		unsigned fbeg;   // начальная частота модуля, кГц
-		unsigned fend;   // конечная частота модуля, кГц	
-	};
+	//// ===========================================================================
+	//// Ионограмма
+	//// ===========================================================================
+	//
+	//// Класс доступа к конфигурационному файлу зондирования.
+	//class confIonogram : public config {
+ //   
+	//protected:
+	//	ionogramSettings _ionogram; // параметры ионограммы
 
-	// Класс доступа к конфигурационному файлу зондирования.
-	class confIonogram : public config {
-    
-	protected:
-		ionogramSettings _ionogram; // параметры ионограммы
+	//public:
+	//	confIonogram(void);
+	//	confIonogram(std::string fullName);
+	//	~confIonogram(void);
 
-	public:
-		confIonogram(void);
-		confIonogram(std::string fullName);
-		~confIonogram(void);
+	//	void readIonogramConf(void);
+	//	unsigned getFreq_step(void){return _ionogram.fstep;}
+	//	unsigned getFreq_min(void){return _ionogram.fbeg;}
+	//	unsigned getFreq_max(void){return _ionogram.fend;}
+	//	unsigned getFreq_count(void){return (_ionogram.fend - _ionogram.fbeg) / _ionogram.fstep + 1;}
+	//};
 
-		void readIonogramConf(void);
-		unsigned getFreq_step(void){return _ionogram.fstep;}
-		unsigned getFreq_min(void){return _ionogram.fbeg;}
-		unsigned getFreq_max(void){return _ionogram.fend;}
-		unsigned getFreq_count(void){return (_ionogram.fend - _ionogram.fbeg) / _ionogram.fstep + 1;}
-	};
+	//// ===========================================================================
+	//// Амплитуды
+	//// ===========================================================================
+	//struct myModule {  
+	//	unsigned frq;   // частота модуля, кГц
+	//};
 
-	// ===========================================================================
-	// Амплитуды
-	// ===========================================================================
-	struct myModule {  
-		unsigned frq;   // частота модуля, кГц
-	};
+	//// Класс доступа к конфигурационному файлу зондирования.
+	//class parusConfig  : public config {
+ //   
+	//	unsigned _ver; // номер версии
+	//	unsigned _height_step; // шаг по высоте, м
+	//	unsigned _height_count; // количество высот
+	//	unsigned _modules_count; // количество модулей/частот зондирования
+	//	unsigned _pulse_count; // импульсов зондирования на каждой частоте
+	//	unsigned _attenuation; // ослабление (аттенюатор) 1/0 = вкл/выкл
+	//	unsigned _gain;	// усиление (g = value/6, 6дБ = приращение в 4 раза по мощности)
+	//	unsigned _pulse_frq; // частота зондирующих импульсов, Гц
+	//	unsigned _pulse_duration; // длительность зондирующих импульсов, мкс
+	//	unsigned _height_min; // начальная высота, км (всё, что ниже при обработке отбрасывается)
+	//	unsigned _height_max; // конечная высота, км (всё, что выше при обработке отбрасывается)
 
-	// Класс доступа к конфигурационному файлу зондирования.
-	class parusConfig  : public config {
-    
-		unsigned _ver; // номер версии
-		unsigned _height_step; // шаг по высоте, м
-		unsigned _height_count; // количество высот
-		unsigned _modules_count; // количество модулей/частот зондирования
-		unsigned _pulse_count; // импульсов зондирования на каждой частоте
-		unsigned _attenuation; // ослабление (аттенюатор) 1/0 = вкл/выкл
-		unsigned _gain;	// усиление (g = value/6, 6дБ = приращение в 4 раза по мощности)
-		unsigned _pulse_frq; // частота зондирующих импульсов, Гц
-		unsigned _pulse_duration; // длительность зондирующих импульсов, мкс
-		unsigned _height_min; // начальная высота, км (всё, что ниже при обработке отбрасывается)
-		unsigned _height_max; // конечная высота, км (всё, что выше при обработке отбрасывается)
+	//	myModule	*_ptModules; // указатель на массив модулей
 
-		myModule	*_ptModules; // указатель на массив модулей
+	//	void getModulesCount(std::ifstream &fin);
+	//	void getModules(std::ifstream &fin);
+	//	myModule getCurrentModule(std::ifstream &fin);
+	//public:
+	//	parusConfig(std::string fullName);
+	//	~parusConfig(void);
 
-		void getModulesCount(std::ifstream &fin);
-		void getModules(std::ifstream &fin);
-		myModule getCurrentModule(std::ifstream &fin);
-	public:
-		parusConfig(std::string fullName);
-		~parusConfig(void);
+	//	void loadConf(std::string fullName);
+	//	int getModulesCount(void){return _modules_count;}
+	//	unsigned getHeightStep(void){return _height_step;}
+	//	void setHeightStep(double value){_height_step = static_cast<unsigned>(value);}
+	//	unsigned getHeightCount(void){return _height_count;}
+	//	unsigned getVersion(void){return _ver;}
+	//	unsigned getFreq(int num){return _ptModules[num].frq;}
 
-		void loadConf(std::string fullName);
-		int getModulesCount(void){return _modules_count;}
-		unsigned getHeightStep(void){return _height_step;}
-		void setHeightStep(double value){_height_step = static_cast<unsigned>(value);}
-		unsigned getHeightCount(void){return _height_count;}
-		unsigned getVersion(void){return _ver;}
-		unsigned getFreq(int num){return _ptModules[num].frq;}
+	//	unsigned getAttenuation(void){return _attenuation;} // ослабление (аттенюатор) 1/0 = вкл/выкл
+	//	unsigned getGain(void){return _gain;}	// усиление (g = value/6, 6дБ = приращение в 4 раза по мощности)
+	//	unsigned getPulse_frq(void){return _pulse_frq;} // частота зондирующих импульсов, Гц
+	//	unsigned getPulse_duration(void){return _pulse_duration;} // длительность зондирующих импульсов, мкс
 
-		unsigned getAttenuation(void){return _attenuation;} // ослабление (аттенюатор) 1/0 = вкл/выкл
-		unsigned getGain(void){return _gain;}	// усиление (g = value/6, 6дБ = приращение в 4 раза по мощности)
-		unsigned getPulse_frq(void){return _pulse_frq;} // частота зондирующих импульсов, Гц
-		unsigned getPulse_duration(void){return _pulse_duration;} // длительность зондирующих импульсов, мкс
-
-		unsigned getHeightMin(void){return _height_min;} // начальная высота, км (всё, что ниже при обработке отбрасывается)
-		unsigned getHeightMax(void){return _height_max;} // конечная высота, км (всё, что выше при обработке отбрасывается)
-	};
+	//	unsigned getHeightMin(void){return _height_min;} // начальная высота, км (всё, что ниже при обработке отбрасывается)
+	//	unsigned getHeightMax(void){return _height_max;} // конечная высота, км (всё, что выше при обработке отбрасывается)
+	//};
 
 }; // end namespace parus
 
