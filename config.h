@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <fstream>
 
@@ -51,9 +52,16 @@ namespace parus {
 	};
 
 	// ===========================================================================
+	// Модуль для амплитудных измерений
+	// ===========================================================================
+	struct myModule {  
+		unsigned frq;   // частота модуля, кГц
+	};
+
+	// ===========================================================================
 	// Конфигурационный файл
 	// ===========================================================================
-	enum  Measurement { IONOGRAM = 1, AMPLITUDES }; // перечисление для вариантов проведения эксперимента
+	enum  Measurement { IONOGRAM, AMPLITUDES }; // перечисление для вариантов проведения эксперимента
 
 	// Общие параметры для программирования устройства.
 	struct ionosounder { 
@@ -75,39 +83,6 @@ namespace parus {
 		unsigned fend;   // конечная частота модуля, кГц	
 	};
 
-	//// Общий блок конфигурационного файла
-	//class config {
-
-	//protected:
-	//	ionosounder _device;
-	//	static const std::string _whitespaces;
-	//	std::string _fullFileName;
-	//	std::ifstream _fin;
-
-	//	unsigned getValueFromString(std::string line);
-	//	void readDeviceConfig(void);
-
-	//public:
-	//	config(std::string fullName);
-	//	~config(void);
-
-	//	static bool isTagConfig(std::string Tag, std::string fullName);
-	//	static bool isIonogramConfig(std::string fullName = std::string(IONOGRAM_CONFIG_DEFAULT_FILE_NAME));
-	//	static bool isAmplitudesConfig(std::string fullName = std::string(AMPLITUDES_CONFIG_DEFAULT_FILE_NAME));
-
-	//	std::string getFileName(void){return _fullFileName;}
-
-	//	unsigned getVersion(void){return _device.ver;}
-	//	unsigned getHeightStep(void){return _device.height_step;}
-	//	void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
-	//	unsigned getHeightCount(void){return _device.height_count;}
-	//	unsigned getPulseCount(void){return _device.pulse_count;}
-	//	unsigned getAttenuation(void){return _device.attenuation;}
-	//	unsigned getGain(void){return _device.gain;}
-	//	unsigned getPulseFrq(void){return _device.pulse_frq;}
-	//	unsigned getPulseDuration(void){return _device.pulse_duration;}
-	//};
-
 	// Общий блок конфигурационного xml-файла
 	class xmlconfig {
 
@@ -119,10 +94,12 @@ namespace parus {
 
 		// Структура для измерения ионограмм
 		ionogramSettings _ionogram;
+		// Вектор структур для амплитудных измерений
+		std::vector<myModule> _amplitudes;
 
-		void loadMeasurementHeader(XML::XMLElement *xml_mes);
-		void loadIonogramConfig(XML::XMLElement *xml_mes);
-		void loadAmplitudesConfig(XML::XMLElement *xml_mes);
+		void loadMeasurementHeader(const XML::XMLElement *xml_mes);
+		void loadIonogramConfig(const XML::XMLElement *xml_mes);
+		void loadAmplitudesConfig(const XML::XMLElement *xml_mes);
 
 	public:
 		xmlconfig(std::string fullName = XML_CONFIG_DEFAULT_FILE_NAME, Measurement mes = IONOGRAM);
@@ -140,31 +117,12 @@ namespace parus {
 		unsigned getPulseFrq(void){return _device.pulse_frq;}
 		unsigned getPulseDuration(void){return _device.pulse_duration;}
 
+		unsigned getAmplitudesFrq(unsigned i){return (getModulesCount()) ? _amplitudes[i].frq : 0;}
+
 		// Формирование заголовка файла ионограмм
 		ionHeaderNew2 getIonogramHeader(void);
 	};
 
-	//// ===========================================================================
-	//// Ионограмма
-	//// ===========================================================================
-	//
-	//// Класс доступа к конфигурационному файлу зондирования.
-	//class confIonogram : public config {
- //   
-	//protected:
-	//	ionogramSettings _ionogram; // параметры ионограммы
-
-	//public:
-	//	confIonogram(void);
-	//	confIonogram(std::string fullName);
-	//	~confIonogram(void);
-
-	//	void readIonogramConf(void);
-	//	unsigned getFreq_step(void){return _ionogram.fstep;}
-	//	unsigned getFreq_min(void){return _ionogram.fbeg;}
-	//	unsigned getFreq_max(void){return _ionogram.fend;}
-	//	unsigned getFreq_count(void){return (_ionogram.fend - _ionogram.fbeg) / _ionogram.fstep + 1;}
-	//};
 
 	//// ===========================================================================
 	//// Амплитуды
