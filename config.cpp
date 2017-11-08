@@ -156,6 +156,8 @@ namespace parus {
 		int value = 0;
 		int i = 0;
 
+		// Определим размер вектора параметров
+		_amplitudes.resize(getModulesCount());
 		// Перебор по модулям
 		for (
          xml_module = xml_mes->FirstChildElement("module");
