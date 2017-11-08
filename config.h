@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iterator>
 #include <iostream>
 #include <fstream>
 #include <ctime>
@@ -21,6 +22,8 @@ namespace XML = tinyxml2;
 #define XML_CONFIG_DEFAULT_FILE_NAME "config.xml"
 
 namespace parus {
+
+	#pragma pack(push, 1)
 
 	// ===========================================================================
 	// Структура для измерения ионограмм
@@ -52,6 +55,17 @@ namespace parus {
 		}
 	};
 
+	struct dataHeader { 	    // === Заголовок файла данных ===
+		unsigned ver; // номер версии
+		struct tm time_sound; // GMT время получения зондирования
+		unsigned height_min; // начальная высота, м (всё, что ниже при обработке отбрасывается)
+		unsigned height_max; // конечная высота, м (всё, что выше при обработке отбрасывается)
+		unsigned height_step; // шаг по высоте, м (реальный шаг, вычисленный по частоте АЦП)
+		unsigned count_height; // число высот (размер исходного буфера АЦП при зондировании, fifo нашего АЦП 4Кб. Т.е. не больше 1024 отсчётов для двух квадратурных каналов)
+		unsigned count_modules; // количество модулей/частот зондирования
+		unsigned pulse_frq; // частота зондирующих импульсов, Гц
+	};
+
 	// ===========================================================================
 	// Модуль для амплитудных измерений
 	// ===========================================================================
@@ -81,8 +95,11 @@ namespace parus {
 	struct ionogramSettings {  
 		unsigned fstep;  // шаг по частоте ионограммы, кГц
 		unsigned fbeg;   // начальная частота модуля, кГц
-		unsigned fend;   // конечная частота модуля, кГц	
+		unsigned fend;   // конечная частота модуля, кГц
+		unsigned count;  // количество частот зондирования
 	};
+
+	#pragma pack(pop)
 
 	// Общий блок конфигурационного xml-файла
 	class xmlconfig {
@@ -118,11 +135,14 @@ namespace parus {
 		unsigned getPulseFrq(void){return _device.pulse_frq;}
 		unsigned getPulseDuration(void){return _device.pulse_duration;}
 		unsigned getSwitchFrequency(void){return _device.switch_frequency;}
+		unsigned getMeasurement(void){return _mes;}
 
 		unsigned getAmplitudesFrq(unsigned i){return (getModulesCount()) ? _amplitudes[i].frq : 0;}
+		ionogramSettings getIonogramSettings(void){return _ionogram;}
 
-		// Формирование заголовка файла ионограмм
+		// Формирование заголовка файла
 		ionHeaderNew2 getIonogramHeader(void);
+		dataHeader getAmplitudesHeader(void);
 	};
 
 

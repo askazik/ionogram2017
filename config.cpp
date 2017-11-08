@@ -126,6 +126,8 @@ namespace parus {
 		xml_element = xml_module->FirstChildElement("fstep");
 			xml_element->QueryIntText(&value);
 				_ionogram.fstep = value;
+
+		_ionogram.count = 1 + (_ionogram.fend - _ionogram.fbeg) / _ionogram.fstep;
 	}
 
 	// Формирование заголовка файла ионограмм
@@ -159,6 +161,38 @@ namespace parus {
 		_out.ver = getVersion();
 
 		return _out;
+	}
+
+	// Формирование заголовка файла амплитудных измерений
+	dataHeader xmlconfig::getAmplitudesHeader(void)
+	{
+		// Obtain coordinated universal time (!!!! UTC !!!!!):
+		// ==================================================================================================
+		// The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
+		// (i.e., the current unix timestamp). Although libraries may use a different representation of time:
+		// Portable programs should not use the value returned by this function directly, but always rely on
+		// calls to other elements of the standard library to translate them to portable types (such as
+		// localtime, gmtime or difftime).
+		// ==================================================================================================
+
+		time_t ltime;
+		time(&ltime);
+		struct tm newtime;
+	
+		gmtime_s(&newtime, &ltime);
+
+		// Заполнение заголовка файла.
+		dataHeader header;
+		header.ver = getVersion();
+		header.time_sound = newtime;
+		header.height_min = 0; // начальная высота сохранённых данных, м
+		header.height_max = header.height_min + (getHeightCount() - 1) * getHeightStep(); // конечная высота сохранённых данных, м
+		header.height_step = getHeightStep(); // шаг по высоте, м
+		header.count_height = getHeightCount(); // число высот (реально измеренных)
+		header.pulse_frq = getPulseFrq(); // частота зондирующих импульсов, Гц
+		header.count_modules = getModulesCount(); // количество модулей зондирования
+
+		return header;
 	}
 
 	/// <summary>

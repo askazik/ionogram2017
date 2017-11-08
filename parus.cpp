@@ -83,12 +83,17 @@ namespace parus {
 		// Открываем LPT1 порт для записи через драйвер GiveIO.sys
 		initLPT1();
 
-		// Открываем файл выходных данных
-		//if(conf->getTag().c_str() == "IONOGRAM")
-		//	openIonogramFile(conf);
-		//if(conf->getTag().compare("SERIAL"))
-		//	openDataFile(conf);
-		openIonogramFile(conf);
+		switch(conf->getMeasurement())
+		{
+		case IONOGRAM:
+			// Определяем размер log-файла
+			_log.resize(conf->getIonogramSettings().count);
+			openIonogramFile(conf);
+			break;
+		case AMPLITUDES:
+			openDataFile(conf);
+			break;
+		}
 	}
 
 	parusWork::~parusWork(void){
@@ -387,43 +392,19 @@ namespace parus {
 	}
 
 	// Открываем файл данных для записи и вносим в него заголовок.
-	void parusWork::openDataFile(config* conf){
-		// Obtain coordinated universal time (!!!! UTC !!!!!):
-		// ==================================================================================================
-		// The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
-		// (i.e., the current unix timestamp). Although libraries may use a different representation of time:
-		// Portable programs should not use the value returned by this function directly, but always rely on
-		// calls to other elements of the standard library to translate them to portable types (such as
-		// localtime, gmtime or difftime).
-		// ==================================================================================================
-		parusConfig* dat = (parusConfig*)conf;
-
-		time_t ltime;
-		time(&ltime);
-		struct tm newtime;
-	
-		gmtime_s(&newtime, &ltime);
-
-		// Заполнение заголовка файла.
-		dataHeader header;
-		header.ver = dat->getVersion();
-		header.time_sound = newtime;
-		header.height_min = dat->getHeightMin(); // начальная высота сохранённых данных, м
-		header.height_max = dat->getHeightMax(); // конечная высота сохранённых данных, м
-		header.height_step = dat->getHeightStep(); // шаг по высоте, м
-		header.count_height = dat->getHeightCount(); // число высот (реально измеренных)
-		header.pulse_frq = dat->getPulse_frq(); // частота зондирующих импульсов, Гц
-		header.count_modules = dat->getModulesCount(); // количество модулей зондирования
+	void parusWork::openDataFile(xmlconfig* conf)
+	{
+		dataHeader header = conf->getAmplitudesHeader();
 
 		// Определение имя файла данных.
 		std::stringstream name;
 		name << std::setfill('0');
 		name << std::setw(4);
-		name << newtime.tm_year+1900 << std::setw(2);
-		name << newtime.tm_mon+1 << std::setw(2) 
-			<< newtime.tm_mday << std::setw(2) 
-			<< newtime.tm_hour << std::setw(2) 
-			<< newtime.tm_min << std::setw(2) << newtime.tm_sec;
+		name << header.time_sound.tm_year+1900 << std::setw(2);
+		name << header.time_sound.tm_mon+1 << std::setw(2) 
+			<< header.time_sound.tm_mday << std::setw(2) 
+			<< header.time_sound.tm_hour << std::setw(2) 
+			<< header.time_sound.tm_min << std::setw(2) << header.time_sound.tm_sec;
 		name << ".frq";
 
 		// Попытаемся открыть файл.
@@ -445,7 +426,7 @@ namespace parus {
 				  &bytes,			// адрес DWORD'a: на выходе - сколько записано
 				  0);				// A pointer to an OVERLAPPED structure.
 		for(unsigned i=0; i<header.count_modules; i++){ // последовательно пишем частоты зондирования
-			unsigned f = dat->getFreq(i);
+			unsigned f = conf->getAmplitudesFrq(i);
 			Retval = WriteFile(_hFile,	// писать в файл
 				  &f,					// адрес буфера: что писать
 				  sizeof(f),			// сколько писать
@@ -460,13 +441,15 @@ namespace parus {
 		memset( _sum_abs, 0, _height_count );
 	}
 
-	void parusWork::accumulateLine(void){
+	void parusWork::accumulateLine(unsigned short curFrq)
+	{
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
 		TBLENTRY *pTbl = &_ReqData->Tbl[0];
 		memcpy(_fullBuf, pTbl[0].Addr, pTbl[0].Size); // копируем весь аппаратный буфер
 		//memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 		
 		int re, im, abstmp;
+		int max_abs_re = 0, max_abs_im = 0;
 	    for(unsigned i = 0; i < _height_count; i++)
 		{
 	        // Используем двухканальную интерпретацию через анонимную структуру
@@ -480,48 +463,51 @@ namespace parus {
 	        word = _fullBuf[i];
 	        re = static_cast<int>(twoCh.re.value) >> 2;
 	        im = static_cast<int>(twoCh.im.value) >> 2;
+
+			max_abs_re = (abs(re) > max_abs_re) ? re : max_abs_re;
+			max_abs_im = (abs(im) > max_abs_im) ? im : max_abs_im;
 	
 	        // Объединим квадратурную информацию в одну амплитуду.
 			abstmp = static_cast<int>(floor(sqrt(re*re*1.0 + im*im*1.0)));
 			_sum_abs[i] = abstmp;
-		}  
+		} 
+
+		// Заполним журнал
+		std::string str;
+		std::stringstream ss;
+		
+		ss << curFrq;
+		str = ss.str() + '\t';
+		ss << max_abs_re;
+		str += ss.str() + '\t';
+		ss << max_abs_re;
+		str += ss.str() + '\t' + ((max_abs_re >= 8191 || max_abs_im >= 8191) ? "false" : "true");
+		_log.push_back(str);
 	}
 
-	void parusWork::averageLine(unsigned pulse_count){
+	void parusWork::averageLine(unsigned pulse_count)
+	{
 	    for(unsigned i = 0; i < _height_count; i++)
 			_sum_abs[i] /= pulse_count;  
 	}
 
-	// Преобразование "сырой" квадратурной строки в строку значений амплитуд без усечения данных.
-	unsigned int* loadIonogramLine(unsigned long *data, int n)
+	void parusWork::saveDirtyLine(void)
 	{
-		unsigned int *idata = NULL;
-	
-		// Обработка сырых данных.
-		idata = new unsigned int [n];
-		int re, im, abstmp;
-	    for(int i = 0; i < n; i++)
-			{
-	            // Используем двухканальную интерпретацию через анонимную структуру
-	            union {
-	                unsigned long word;     // 4-байтное слово двухканального АЦП
-	                adcTwoChannels twoCh;  // двухканальные (квадратурные) данные
-	            };
-	            
-				// Разбиение на квадратуры. 
-				// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
-	            word = data[i];
-	            re = static_cast<int>(twoCh.re.value) >> 2;
-	            im = static_cast<int>(twoCh.im.value) >> 2;
-	
-	            // Объединим квадратурную информацию в одну амплитуду.
-				abstmp = static_cast<int>(floor(sqrt(re*re + im*im*1.0)));
-			}            
-	    
-	    return idata;
+		// Writing data from buffer into file (unsigned long = unsigned int)
+		BOOL	bErrorFlag = FALSE;
+		DWORD	dwBytesWritten = 0;	
+		bErrorFlag = WriteFile( 
+			_hFile,				// open file handle
+			_sum_abs,			// start of data to write
+			_height_count * sizeof(unsigned int),// number of bytes to write
+			&dwBytesWritten,	// number of bytes that were written
+			NULL);				// no overlapped structure
+		if (!bErrorFlag) 
+			throw std::runtime_error("Не могу сохранить блок данных в файл.");
 	}
 
-	void parusWork::saveFullData(void){
+	void parusWork::saveFullData(void)
+	{
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
 		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 
@@ -542,7 +528,8 @@ namespace parus {
 	// Сохраняем строку данных с информацией об усилении приёмника и значении аттенюатора.
 	// Это необходимо для отстройки по ограничениям.
 	// Если есть ограничение сигнала, уменьшаем усиление на 3дБ для текущей частоты и перенастраиваем приемник.
-	void parusWork::saveDataWithGain(void){
+	void parusWork::saveDataWithGain(void)
+	{
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
 		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 

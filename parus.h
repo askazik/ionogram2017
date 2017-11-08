@@ -11,7 +11,7 @@
 // данных. Например HDF, CDF и.т.п.
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #include <iomanip>
-#include <cstring>
+#include <string>
 #include <sstream>
 #include <stdexcept>
 #include <conio.h>
@@ -46,63 +46,6 @@ namespace parus {
 		adcChannel im; // условно вторая квадратура
 	};
 
-	// Формат до 2015 г.
-	struct ionHeaderOld { 	        // === Заголовок файла измерений ===   
-		unsigned char st;		// Station  <Ростов = 3>     > 1
-		unsigned int f_beg;     // ORIGN FREQUENCY     	     > 2
-		unsigned int f_step;    // STEP FREQUENCY            > 4
-		unsigned int f_end;     // Final frequency           > 6
-		double		 dh;		// Height step, m            > 8
-		unsigned int scale;  	// Scale type & lines        >10
-								// Format: <S_ppppppppppppp>
-								// S=0 -> line  S=1 -> log
-		unsigned char   sec;   	// Seconds                   >12
-		unsigned char  	min;   	// Minutes                   >13
-		unsigned char  	hour; 	// Hours                     >14
-		unsigned char  	day;	// Data                      >15
-		unsigned char	mon;	// Month                     >16
-		unsigned char	year; 	// Year                      >17
-		unsigned char 	fr;    	// Rept_freq (Hz)            >18
-		unsigned char	an;    	// Ant_type & polarisation flag  >19
-								//  & Doppler flag & number of pulses
-								// Format: <AAPDnnnn>
-		unsigned char	ka;    	// Attenuation               >20
-								// Flags of configuration:
-		unsigned char	p_len;	// Pulse length (n*50 mks)   >21
-		unsigned char	power;	// Transmitter power n kWt   >22
-		unsigned char	ch_r;  	//                       >23
-		unsigned char	ver;   	// Version of program    >24
-		unsigned int 	yday;	// Day of year (0 - 365; January 1 = 0) >25
-		unsigned int    wday;	// Day of week (0 - 6; Sunday = 0)      >27
-		unsigned int    ks;     //                       >29
-		unsigned int    count;  //                       >31
-	};
-
-	struct ionHeaderNew1 { 	    // === Заголовок файла ионограмм ===   
-		char project_name[16];	// Название проекта (PARUS)
-		char format_version[8]; // Версия формата (ION1, ION2,...)
-	
-		unsigned char   sec;   	// Seconds   
-		unsigned char  	min;   	// Minutes 
-		unsigned char  	hour; 	// Hours 
-		unsigned char  	day;	// Data 
-		unsigned char	mon;	// Month
-		unsigned char	year; 	// Year
-	
-		unsigned char 	imp_frq;// частота посылки зондирующего импульса, Гц (20...100)	
-		unsigned char	imp_duration;// длительность зондирующих импульсов, мкс
-		unsigned char	imp_count;// зондирующих импульсов на каждой частоте
-		unsigned char	att;    	// ослабление (аттенюатор)
-		unsigned char	power;	// усиление
-
-		unsigned short f_beg;   // начальная частота, кГц
-		unsigned short f_step;  // шаг по частоте, кГц
-		unsigned short f_end;   // конечная частота, кГц
-
-		unsigned short  count;  // количество отсчётов высоты
-		double dh;              // шаг по высоте, км
-	};
-
 	struct ionPackedData { // Упакованные данные ионограммы.
 		unsigned size; // Размер упакованной ионограммы в байтах.
 		unsigned char *ptr;   // Указатель на блок данных упакованной ионограммы.
@@ -135,17 +78,6 @@ namespace parus {
 	};
 
 	/* =====================================================================  */
-
-	struct dataHeader { 	    // === Заголовок файла данных ===
-		unsigned ver; // номер версии
-		struct tm time_sound; // GMT время получения зондирования
-		unsigned height_min; // начальная высота, м (всё, что ниже при обработке отбрасывается)
-		unsigned height_max; // конечная высота, м (всё, что выше при обработке отбрасывается)
-		unsigned height_step; // шаг по высоте, м (реальный шаг, вычисленный по частоте АЦП)
-		unsigned count_height; // число высот (размер исходного буфера АЦП при зондировании, fifo нашего АЦП 4Кб. Т.е. не больше 1024 отсчётов для двух квадратурных каналов)
-		unsigned count_modules; // количество модулей/частот зондирования
-		unsigned pulse_frq; // частота зондирующих импульсов, Гц
-	};
 	#pragma pack(pop)
 
 	// Класс работы с аппаратурой Паруса.
@@ -181,13 +113,13 @@ namespace parus {
 		HANDLE initCOM2(void);
 		void initLPT1(void);
 
-		// Работа с файлами выходных данных
-		//void openIonogramFile(config* conf);
-		//void openDataFile(config* conf);
 		void closeOutputFile(void);
 
 		// Работа с ионограммами
 		unsigned int *_sum_abs; // массив абсолютных значений
+
+		// Работа с файлом журнала
+		std::vector<std::string> _log;
 
 	public:
 		// Глобальные описания
@@ -213,14 +145,19 @@ namespace parus {
 		// Работа с ионограммами
 		void openIonogramFile(xmlconfig* conf);
 		void cleanLineAccumulator(void);
-		void accumulateLine(void); // суммирование по импульсам на одной частоте
+		void accumulateLine(unsigned short curFrq); // суммирование по импульсам на одной частоте
 		void averageLine(unsigned pulse_count); // усреднение по импульсам на одной частоте
 		unsigned char getThereshold(unsigned char *arr, unsigned n);
 		void saveLine(unsigned short curFrq); // Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
+		void saveDirtyLine(void);
 
 		// Работа с файлами выходных данных
+		void openDataFile(xmlconfig* conf);
 		void saveFullData(void);
 		void saveDataWithGain(void);
+
+		// Работа с файлом журнала
+		std::vector<std::string> getLog(void){ return _log;}
 	};
 
 	int comp(const void *i, const void *j);
