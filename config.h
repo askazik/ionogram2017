@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <ctime>
 
 #include "config.h"
 #include "tinyxml2.h"
@@ -116,6 +117,7 @@ namespace parus {
 		unsigned getGain(void){return _device.gain;}
 		unsigned getPulseFrq(void){return _device.pulse_frq;}
 		unsigned getPulseDuration(void){return _device.pulse_duration;}
+		unsigned getSwitchFrequency(void){return _device.switch_frequency;}
 
 		unsigned getAmplitudesFrq(unsigned i){return (getModulesCount()) ? _amplitudes[i].frq : 0;}
 

@@ -11,30 +11,30 @@ int main(void)
 	SetPriorityClass();
 
     // ===========================================================================================
-    // 1. „итаем файл конфигурации.
+    // 1. „итаем файл конфигурации дл€ измерени€ ионограммы.
     // ===========================================================================================
-	//xmlconfig conf;
-	//ionHeaderNew2 _header = conf.getIonogramHeader();
-
-	//std::cout << "»спользуем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
-
-	//std::cout << "ѕараметры зондировани€: " << std::endl;
-	//std::cout << "„астоты: " << _header.freq_min << " к√ц - " << _header.freq_max 
-	//			<< " к√ц, усиление = " << conf.getGain() 
-	//			<< " дЅ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
-
-    // ===========================================================================================
-    // 1. „итаем файл конфигурации дл€ амплитудных измерений.
-    // ===========================================================================================
-	xmlconfig conf("config.xml", AMPLITUDES);
+	xmlconfig conf;
+	ionHeaderNew2 _header = conf.getIonogramHeader();
 
 	std::cout << "»спользуем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
 
 	std::cout << "ѕараметры зондировани€: " << std::endl;
-	std::cout << "”силение = " << conf.getGain() 
+	std::cout << "„астоты: " << _header.freq_min << " к√ц - " << _header.freq_max 
+				<< " к√ц, усиление = " << conf.getGain() 
 				<< " дЅ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
-	for(size_t i = 0; i < conf.getModulesCount(); i++)
-		std::cout << conf.getAmplitudesFrq(i) << " к√ц" << std::endl;
+
+    // ===========================================================================================
+    // 1. „итаем файл конфигурации дл€ амплитудных измерений.
+    // ===========================================================================================
+	//xmlconfig conf("config.xml", AMPLITUDES);
+
+	//std::cout << "»спользуем конфигурационный файл: <" << conf.getFileName() << ">." << std::endl;
+
+	//std::cout << "ѕараметры зондировани€: " << std::endl;
+	//std::cout << "”силение = " << conf.getGain() 
+	//			<< " дЅ, аттенюатор = " << conf.getAttenuation() << " выкл(0)/вкл(1)." << std::endl;
+	//for(size_t i = 0; i < conf.getModulesCount(); i++)
+	//	std::cout << conf.getAmplitudesFrq(i) << " к√ц" << std::endl;
 
     // ===========================================================================================
     // 2.  онфигурирование сеанса.
@@ -42,13 +42,13 @@ int main(void)
 	int RetStatus = 0;
 	try	
 	{
-		//// ѕодготовка аппаратуры к зондированию.
-		//// ќткрытие выходнго файла данных и запись заголовка.
-		//parusWork *work = new parusWork(conf);
+		// ѕодготовка аппаратуры к зондированию.
+		// ќткрытие выходнго файла данных и запись заголовка.
+		parusWork *work = new parusWork(conf);
 
-		//DWORD msTimeout = 4;
-		//unsigned short curFrq = conf->getFreq_min(); // текуща€ частота зондировани€, к√ц
-		//int counter = conf->getFreq_count() * conf->getPulseCount(); // число импульсов от генератора
+		DWORD msTimeout = 4;
+		unsigned short curFrq = conf->getFreq_min(); // текуща€ частота зондировани€, к√ц
+		int counter = conf->getFreq_count() * conf->getPulseCount(); // число импульсов от генератора
 
 		//work->startGenerator(counter+1); // «апуск генератора импульсов.
 		//while(counter) // обрабатываем импульсы генератора

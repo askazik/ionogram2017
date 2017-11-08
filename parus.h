@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <cstring>
 #include <sstream>
-#include <ctime>
 #include <stdexcept>
 #include <conio.h>
 
@@ -197,7 +196,7 @@ namespace parus {
 		static const std::string _DeviceName;
 		static const double _C; // скорость света в вакууме
 
-		parusWork(config* conf);
+		parusWork(xmlconfig* conf);
 		~parusWork(void);
 
 		M214x3M_DRVPARS initADC(unsigned int nHeights);
@@ -212,6 +211,7 @@ namespace parus {
 		void startGenerator(unsigned int nPulses);
 
 		// Работа с ионограммами
+		void openIonogramFile(xmlconfig* conf);
 		void cleanLineAccumulator(void);
 		void accumulateLine(void); // суммирование по импульсам на одной частоте
 		void averageLine(unsigned pulse_count); // усреднение по импульсам на одной частоте

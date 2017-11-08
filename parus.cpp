@@ -10,7 +10,7 @@ namespace parus {
 	const std::string parusWork::_DeviceName = "ADM214x3M on AMBPCI";
 	const double parusWork::_C = 2.9979e8; // скорость света в вакууме
 
-	parusWork::parusWork(config* conf) :
+	parusWork::parusWork(xmlconfig* conf) :
 		_hFile(NULL)
 	{
 		_g = conf->getGain()/6;	// ??? 6дЅ = приращение в 4 раза по мощности
@@ -348,46 +348,20 @@ namespace parus {
 	}
 
 	// ќткрываем файл ионограммы дл€ записи и вносим в него заголовок.
-	void parusWork::openIonogramFile(config* conf){
-	
-	// Obtain coordinated universal time (!!!! UTC !!!!!):
-    // ==================================================================================================
-    // The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
-    // (i.e., the current unix timestamp). Although libraries may use a different representation of time:
-    // Portable programs should not use the value returned by this function directly, but always rely on
-    // calls to other elements of the standard library to translate them to portable types (such as
-    // localtime, gmtime or difftime).
-    // ==================================================================================================
-		confIonogram* ion = (confIonogram*)conf;
-
-		time_t ltime;
-		time(&ltime);
-		struct tm newtime;
-	
-		gmtime_s(&newtime, &ltime);
-
+	void parusWork::openIonogramFile(xmlconfig* conf)
+	{
 		// «аполнение заголовка файла.
-		ionHeaderNew2 header;
-		header.ver = ion->getVersion();
-		header.time_sound = newtime;
-		header.height_min = 0; // начальна€ высота, м
-		header.height_step = ion->getHeightStep(); // шаг по высоте, м
-		header.count_height = ion->getHeightCount(); // число высот
-		header.freq_min = ion->getFreq_min(); // начальна€ частота, к√ц (первого модул€)
-		header.freq_max = ion->getFreq_max(); // конечна€ частота, к√ц (последнего модул€)   
-		header.count_freq = ion->getFreq_count(); // число частот во всех модул€х
-		header.count_modules = 1; // количество модулей зондировани€
-		header.switch_frequency = 0; // не определена
+		ionHeaderNew2 header = conf->getIonogramHeader();
 
 		// ќпределение им€ файла ионограммы.
 		std::stringstream name;
 		name << std::setfill('0');
 		name << std::setw(4);
-		name << newtime.tm_year+1900 << std::setw(2);
-		name << newtime.tm_mon+1 << std::setw(2) 
-			<< newtime.tm_mday << std::setw(2) 
-			<< newtime.tm_hour << std::setw(2) 
-			<< newtime.tm_min << std::setw(2) << newtime.tm_sec;
+		name << header.time_sound.tm_year+1900 << std::setw(2);
+		name << header.time_sound.tm_mon+1 << std::setw(2) 
+			<< header.time_sound.tm_mday << std::setw(2) 
+			<< header.time_sound.tm_hour << std::setw(2) 
+			<< header.time_sound.tm_min << std::setw(2) << header.time_sound.tm_sec;
 		name << ".ion";
 
 		// ѕопытаемс€ открыть файл.

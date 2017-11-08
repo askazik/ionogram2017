@@ -78,6 +78,7 @@
   <ItemGroup>
     <ClCompile Include="config.cpp" />
     <ClCompile Include="ionogram.cpp" />
+    <ClCompile Include="parus.cpp" />
     <ClCompile Include="tinyxml2.cpp" />
   </ItemGroup>
   <ItemGroup>

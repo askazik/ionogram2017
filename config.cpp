@@ -133,6 +133,21 @@ namespace parus {
 	{
 		ionHeaderNew2 _out;
 
+	// Obtain coordinated universal time (!!!! UTC !!!!!):
+    // ==================================================================================================
+    // The value returned generally represents the number of seconds since 00:00 hours, Jan 1, 1970 UTC
+    // (i.e., the current unix timestamp). Although libraries may use a different representation of time:
+    // Portable programs should not use the value returned by this function directly, but always rely on
+    // calls to other elements of the standard library to translate them to portable types (such as
+    // localtime, gmtime or difftime).
+    // ==================================================================================================
+		time_t ltime;
+		time(&ltime);
+		struct tm newtime;
+		gmtime_s(&newtime, &ltime);
+
+		// Заполнение заголовка файла.
+		_out.time_sound = newtime;
 		_out.count_freq = 1 + (_ionogram.fend - _ionogram.fbeg)/_ionogram.fstep;
 		_out.count_height = getHeightCount();
 		_out.count_modules = getModulesCount();
