@@ -77,13 +77,13 @@ int main(void)
 			// Усечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
 			switch(conf.getVersion())
 			{
-			case 0:
-				work->saveDirtyLine();
-				break;
-			case 1:
+			case 0: // ИПГ
 				work->saveLine(curFrq);
 				break;
-			case 2:
+			case 1: // без потерь
+				work->saveDirtyLine();
+				break;
+			case 2: // CDF
 
 				break;
 			}
