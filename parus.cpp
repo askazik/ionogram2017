@@ -87,7 +87,6 @@ namespace parus {
 		{
 		case IONOGRAM:
 			// Определяем размер log-файла
-			_log.resize(conf->getIonogramSettings().count);
 			openIonogramFile(conf);
 			break;
 		case AMPLITUDES:
@@ -437,16 +436,16 @@ namespace parus {
 			throw std::runtime_error("Ошибка записи заголовка файла данных.");    
 	}
 
-	void parusWork::cleanLineAccumulator(void){
-		memset( _sum_abs, 0, _height_count );
+	void parusWork::cleanLineAccumulator(void)
+	{
+		for(size_t i = 0; i < _height_count; i++)
+			_sum_abs[i] = 0;
 	}
 
 	void parusWork::accumulateLine(unsigned short curFrq)
 	{
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
-		TBLENTRY *pTbl = &_ReqData->Tbl[0];
-		memcpy(_fullBuf, pTbl[0].Addr, pTbl[0].Size); // копируем весь аппаратный буфер
-		//memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
+		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 		
 		int re, im, abstmp;
 		int max_abs_re = 0, max_abs_im = 0;
@@ -469,20 +468,14 @@ namespace parus {
 	
 	        // Объединим квадратурную информацию в одну амплитуду.
 			abstmp = static_cast<int>(floor(sqrt(re*re*1.0 + im*im*1.0)));
-			_sum_abs[i] = abstmp;
+			_sum_abs[i] += abstmp;
 		} 
 
 		// Заполним журнал
-		std::string str;
 		std::stringstream ss;
-		
-		ss << curFrq;
-		str = ss.str() + '\t';
-		ss << max_abs_re;
-		str += ss.str() + '\t';
-		ss << max_abs_re;
-		str += ss.str() + '\t' + ((max_abs_re >= 8191 || max_abs_im >= 8191) ? "false" : "true");
-		_log.push_back(str);
+		ss << curFrq << ' ' << max_abs_re << ' ' << max_abs_im << ' ' <<
+			((max_abs_re >= 8191 || max_abs_im >= 8191) ? "false" : "true");
+		_log.push_back(ss.str());
 	}
 
 	void parusWork::averageLine(unsigned pulse_count)

@@ -106,8 +106,8 @@ namespace parus {
 		unsigned long *_fullBuf; // грязная строка данных
 		unsigned long buf_size;
 
-		BYTE *getBuffer(void){return (BYTE*)(&_ReqData->Tbl[0].Addr);}
-		DWORD getBufferSize(void){return (DWORD)(&_ReqData->Tbl[0].Size);}
+		BYTE *getBuffer(void){return (BYTE*)(_ReqData->Tbl[0].Addr);}
+		DWORD getBufferSize(void){return (DWORD)(_ReqData->Tbl[0].Size);}
 
 		HANDLE _LPTPort; // для конфигурирования синтезатора
 		HANDLE initCOM2(void);

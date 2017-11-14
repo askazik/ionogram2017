@@ -47,7 +47,7 @@ int main(void)
 		ionogramSettings ion = conf.getIonogramSettings();
 		parusWork *work = new parusWork(&conf);
 
-		DWORD msTimeout = 4;
+		DWORD msTimeout = 10;
 		unsigned short curFrq = ion.fbeg; // текуща€ частота зондировани€, к√ц
 		int counter = ion.count * conf.getPulseCount(); // число импульсов от генератора
 
@@ -69,11 +69,12 @@ int main(void)
 				// ќстановим ј÷ѕ
 				work->READ_ABORTIO();					
 
-				work->accumulateLine(curFrq);
+				work->accumulateLine(curFrq); // частота нужна дл€ заполнени€ журнала
 				counter--; // приступаем к обработке следующего импульса
 			}
 			// усредним по количеству импульсов зондировани€ на одной частоте
-			work->averageLine(conf.getPulseCount()); 
+			if(conf.getPulseCount() > 1)
+				work->averageLine(conf.getPulseCount()); 
 			// ”сечение данных до char (сдвиг на 6 бит) и сохранение линии в файле.
 			switch(conf.getVersion())
 			{
