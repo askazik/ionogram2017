@@ -47,7 +47,7 @@ int main(void)
 		ionogramSettings ion = conf.getIonogramSettings();
 		parusWork *work = new parusWork(&conf);
 
-		DWORD msTimeout = 10;
+		DWORD msTimeout = 25;
 		unsigned short curFrq = ion.fbeg; // текуща€ частота зондировани€, к√ц
 		int counter = ion.count * conf.getPulseCount(); // число импульсов от генератора
 

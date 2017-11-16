@@ -70,9 +70,7 @@ namespace parus {
 		// Возвращает частоту дискретизации, реально установленную для АЦП.
 		DAQ_ioctl(_DAQ, DAQ_ioctlSETRATE, &Frq);
 		conf->setHeightStep(_C/(2.*Frq)); // реальный шаг по высоте, м
-
 		_height_step = conf->getHeightStep(); // шаг по высоте, м
-		_height_max = 1000 * (_height_count-1) * _height_step; // конечная высота, м
 
 		// Настройка параметров асинхронного режима.
 		_xferData.UseIrq = 1;	// 1 - использовать прерывания
@@ -447,9 +445,9 @@ namespace parus {
 		// В буффере АЦП сохранены два сырых 16-битных чередующихся канала на одной частоте (count - количество 32-разрядных слов).
 		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 		
-		int re, im, abstmp;
-		int max_abs_re = 0, max_abs_im = 0;
-	    for(unsigned i = 0; i < _height_count; i++)
+		short re, im, abstmp;
+		unsigned short max_abs_re = 0, max_abs_im = 0;
+	    for(size_t i = 0; i < _height_count; i++)
 		{
 	        // Используем двухканальную интерпретацию через анонимную структуру
 	        union {
@@ -460,14 +458,16 @@ namespace parus {
 			// Разбиение на квадратуры. 
 			// Значимы только старшие 14 бит. Младшие 2 бит - технологическая окраска.
 	        word = _fullBuf[i];
-	        re = static_cast<int>(twoCh.re.value) >> 2;
-	        im = static_cast<int>(twoCh.im.value) >> 2;
+	        /*re = static_cast<int>(twoCh.re.value) >> 2;
+	        im = static_cast<int>(twoCh.im.value) >> 2;*/
+			re = static_cast<short>(twoCh.re.value);
+	        im = static_cast<short>(twoCh.im.value);
 
-			max_abs_re = (abs(re) > max_abs_re) ? re : max_abs_re;
-			max_abs_im = (abs(im) > max_abs_im) ? im : max_abs_im;
+			max_abs_re = (abs(re) > abs(max_abs_re)) ? re : max_abs_re;
+			max_abs_im = (abs(im) > abs(max_abs_im)) ? im : max_abs_im;
 	
 	        // Объединим квадратурную информацию в одну амплитуду.
-			abstmp = static_cast<int>(floor(sqrt(re*re*1.0 + im*im*1.0)));
+			abstmp = static_cast<unsigned short>(floor(sqrt(re*re*1.0 + im*im*1.0)));
 			_sum_abs[i] += abstmp;
 		} 
 
@@ -480,7 +480,7 @@ namespace parus {
 
 	void parusWork::averageLine(unsigned pulse_count)
 	{
-	    for(unsigned i = 0; i < _height_count; i++)
+	    for(size_t i = 0; i < _height_count; i++)
 			_sum_abs[i] /= pulse_count;  
 	}
 
@@ -492,7 +492,7 @@ namespace parus {
 		bErrorFlag = WriteFile( 
 			_hFile,				// open file handle
 			_sum_abs,			// start of data to write
-			_height_count * sizeof(unsigned int),// number of bytes to write
+			_height_count * sizeof(unsigned short),// number of bytes to write
 			&dwBytesWritten,	// number of bytes that were written
 			NULL);				// no overlapped structure
 		if (!bErrorFlag) 
@@ -614,7 +614,7 @@ namespace parus {
 		unsigned j;
 		unsigned char *dataLine = new unsigned char [n];
 
-		// Усечение данных до размера 8 бит (на 2 бита уже сместились ранее).
+		// Усечение данных до размера 8 бит.
 		for(unsigned i = 0; i < n; i++) 
 			dataLine[i] = static_cast<unsigned char>(_sum_abs[i] >> 6);
 

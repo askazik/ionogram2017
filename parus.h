@@ -94,7 +94,6 @@ namespace parus {
 		unsigned _height_step; // шаг по высоте, м
 		unsigned _height_count; // количество высот
 		unsigned _height_min; // начальная высота, км (всё, что ниже при обработке отбрасывается)
-		unsigned _height_max; // конечная высота, км (всё, что выше при обработке отбрасывается)
 
 		int _RetStatus;
 		M214x3M_DRVPARS _DrvPars;
@@ -116,7 +115,7 @@ namespace parus {
 		void closeOutputFile(void);
 
 		// Работа с ионограммами
-		unsigned int *_sum_abs; // массив абсолютных значений
+		unsigned short *_sum_abs; // массив абсолютных значений
 
 		// Работа с файлом журнала
 		std::vector<std::string> _log;
