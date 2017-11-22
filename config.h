@@ -17,8 +17,6 @@
 
 namespace XML = tinyxml2;
 
-#define IONOGRAM_CONFIG_DEFAULT_FILE_NAME "ionogram2017.conf"
-#define AMPLITUDES_CONFIG_DEFAULT_FILE_NAME "amplitudes2017.conf"
 #define XML_CONFIG_DEFAULT_FILE_NAME "config.xml"
 
 namespace parus {
