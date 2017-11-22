@@ -84,7 +84,10 @@ int main(void)
 			case 1: // без потерь
 				work->saveDirtyLine();
 				break;
-			case 2: // CDF
+			case 2: // для калибровки
+				work->saveFullData();
+				break;
+			case 3: // CDF
 
 				break;
 			}

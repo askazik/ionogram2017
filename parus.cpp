@@ -43,7 +43,7 @@ namespace parus {
 		_fullBuf = new unsigned long [_height_count];
 
 		// Запрос памяти для аккумулятора абсолютных значений
-		_sum_abs = new unsigned int [_height_count];
+		_sum_abs = new unsigned short [_height_count];
 		cleanLineAccumulator();
 
 		// блоки TBLENTRY плотно упакованы вслед за нулевым из DAQ_ASYNCREQDATA
@@ -446,7 +446,7 @@ namespace parus {
 		memcpy(_fullBuf, getBuffer(), getBufferSize()); // копируем весь аппаратный буфер
 		
 		short re, im, abstmp;
-		unsigned short max_abs_re = 0, max_abs_im = 0;
+		short max_abs_re = 0, max_abs_im = 0;
 	    for(size_t i = 0; i < _height_count; i++)
 		{
 	        // Используем двухканальную интерпретацию через анонимную структуру
@@ -460,8 +460,8 @@ namespace parus {
 	        word = _fullBuf[i];
 	        /*re = static_cast<int>(twoCh.re.value) >> 2;
 	        im = static_cast<int>(twoCh.im.value) >> 2;*/
-			re = static_cast<short>(twoCh.re.value);
-	        im = static_cast<short>(twoCh.im.value);
+			re = static_cast<short>(twoCh.re.value>>2);
+	        im = static_cast<short>(twoCh.im.value>>2);
 
 			max_abs_re = (abs(re) > abs(max_abs_re)) ? re : max_abs_re;
 			max_abs_im = (abs(im) > abs(max_abs_im)) ? im : max_abs_im;
@@ -474,7 +474,7 @@ namespace parus {
 		// Заполним журнал
 		std::stringstream ss;
 		ss << curFrq << ' ' << max_abs_re << ' ' << max_abs_im << ' ' <<
-			((max_abs_re >= 8191 || max_abs_im >= 8191) ? "false" : "true");
+			((abs(max_abs_re) >= 8191 || abs(max_abs_im) >= 8191) ? "false" : "true");
 		_log.push_back(ss.str());
 	}
 
