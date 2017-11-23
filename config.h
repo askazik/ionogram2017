@@ -126,8 +126,10 @@ namespace parus {
 		unsigned getHeightStep(void){return _device.height_step;}
 		void setHeightStep(double value){_device.height_step = static_cast<unsigned>(value);}
 		unsigned getHeightCount(void){return _device.height_count;}
+		void setHeightCount(unsigned value){_device.height_count = value;}
 		unsigned getModulesCount(void){return _device.modules_count;}
 		unsigned getPulseCount(void){return _device.pulse_count;}
+		void setPulseCount(unsigned value){_device.pulse_count = value;}
 		unsigned getAttenuation(void){return _device.attenuation;}
 		unsigned getGain(void){return _device.gain;}
 		unsigned getPulseFrq(void){return _device.pulse_frq;}

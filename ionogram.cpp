@@ -46,6 +46,8 @@ int main(void)
 		// Открытие выходнго файла данных и запись заголовка.
 		ionogramSettings ion = conf.getIonogramSettings();
 		parusWork *work = new parusWork(&conf);
+		// Задержка для корректной инициализации ADC
+		Sleep(30*1000); // полминуты
 
 		DWORD msTimeout = 25;
 		unsigned short curFrq = ion.fbeg; // текущая частота зондирования, кГц
